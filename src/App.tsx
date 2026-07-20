@@ -14,7 +14,7 @@ type Tab = 'feed' | 'week' | 'saved' | 'search'
 
 function App() {
   const [city, setCity] = useState<City | null>(() => {
-    return (localStorage.getItem('eventful_city') as City) || null
+    return (localStorage.getItem('eventilo_city') as City) || null
   })
   const [activeTab, setActiveTab] = useState<Tab>('feed')
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -23,7 +23,7 @@ function App() {
 
   const handleCitySelect = (c: City) => {
     setCity(c)
-    localStorage.setItem('eventful_city', c)
+    localStorage.setItem('eventilo_city', c)
     setShowCitySelect(false)
   }
 

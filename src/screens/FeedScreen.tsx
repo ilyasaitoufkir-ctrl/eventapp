@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react'
-import { Search, ChevronDown, RefreshCw } from 'lucide-react'
+import { Search, ChevronDown, RefreshCw, MapPin } from 'lucide-react'
 import { events } from '../data/events'
 import type { Category, City, Event } from '../types'
 import EventCard from '../components/EventCard'
@@ -19,6 +19,14 @@ const filters: { label: string; emoji: string; value: Category }[] = [
 const TODAY = '2026-07-21'
 const WEEK_END = '2026-07-27'
 
+const cityEmoji: Record<City, string> = {
+  Hamburg: '🏙️',
+  Berlin: '🏛️',
+  Köln: '🎪',
+  Düsseldorf: '🌆',
+  München: '🍺',
+}
+
 interface Props {
   city: City
   onCityChange: () => void
@@ -31,20 +39,14 @@ export default function FeedScreen({ city, onCityChange, onEventClick, onSearchC
   const [loading, setLoading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const cityEmoji: Record<City, string> = {
-    Hamburg: '🏙️',
-    Berlin: '🏛️',
-    Köln: '🎪',
-    Düsseldorf: '🌆',
-    München: '🍺',
-  }
-
   const filtered = useMemo(() => {
-    let base = events.filter(e => e.city === city)
+    const base = events.filter(e => e.city === city)
     if (activeFilter === 'Heute') return base.filter(e => e.date === TODAY)
     if (activeFilter === 'Diese Woche') return base.filter(e => e.date >= TODAY && e.date <= WEEK_END)
-    if (activeFilter === 'Konzert' || activeFilter === 'Party' || activeFilter === 'Sport' ||
-        activeFilter === 'Kultur' || activeFilter === 'Food & Drinks' || activeFilter === 'Kunst') {
+    if (
+      activeFilter === 'Konzert' || activeFilter === 'Party' || activeFilter === 'Sport' ||
+      activeFilter === 'Kultur' || activeFilter === 'Food & Drinks' || activeFilter === 'Kunst'
+    ) {
       return base.filter(e => e.category === activeFilter)
     }
     return base
@@ -60,39 +62,49 @@ export default function FeedScreen({ city, onCityChange, onEventClick, onSearchC
       {/* Header */}
       <div className="glass sticky top-0 z-30 border-b border-white/5">
         <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-xl font-black gradient-text tracking-tight">Eventful</span>
+          {/* Logo */}
+          <span className="text-xl font-black gradient-text tracking-tight">Eventilo</span>
 
+          {/* City selector – prominenter */}
           <button
             onClick={onCityChange}
-            className="flex items-center gap-1.5 bg-white/8 hover:bg-white/12 transition-colors rounded-full px-3 py-1.5"
+            className="flex items-center gap-2 rounded-2xl px-3.5 py-2 border border-[var(--primary)]/30 bg-[var(--primary)]/8 hover:bg-[var(--primary)]/15 transition-all"
           >
-            <span className="text-base">{cityEmoji[city]}</span>
-            <span className="text-white font-semibold text-sm">{city}</span>
-            <ChevronDown size={14} className="text-[var(--text-secondary)]" />
+            <div className="flex items-center gap-1.5">
+              <MapPin size={13} className="text-[var(--primary)]" />
+              <span className="text-white font-bold text-sm">{city}</span>
+            </div>
+            <span className="text-lg leading-none">{cityEmoji[city]}</span>
+            <ChevronDown size={13} className="text-[var(--primary)]" />
           </button>
 
+          {/* Actions */}
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
               className="w-9 h-9 rounded-full bg-white/8 flex items-center justify-center hover:bg-white/12 transition-colors"
             >
-              <RefreshCw size={16} className={`text-white/70 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw size={15} className={`text-white/70 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={onSearchClick}
               className="w-9 h-9 rounded-full bg-white/8 flex items-center justify-center hover:bg-white/12 transition-colors"
             >
-              <Search size={16} className="text-white/70" />
+              <Search size={15} className="text-white/70" />
             </button>
           </div>
         </div>
 
-        {/* Filter bar */}
-        <div ref={scrollRef} className="flex gap-2 px-4 pb-3 overflow-x-auto">
+        {/* Filter bar – glassmorphism */}
+        <div
+          ref={scrollRef}
+          className="flex gap-2 px-4 pb-3 overflow-x-auto"
+          style={{ maskImage: 'linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%)' }}
+        >
           {filters.map(f => (
             <button
               key={f.value}
-              className={`filter-pill ${activeFilter === f.value ? 'active' : ''}`}
+              className={`filter-pill shrink-0 ${activeFilter === f.value ? 'active' : ''}`}
               onClick={() => setActiveFilter(f.value)}
             >
               <span>{f.emoji}</span>
@@ -102,11 +114,11 @@ export default function FeedScreen({ city, onCityChange, onEventClick, onSearchC
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 px-4 py-4 page-enter">
+      {/* Content – 16px padding seitlich */}
+      <div className="flex-1 px-4 py-5 page-enter">
         {loading ? (
-          <div className="grid grid-cols-1 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+          <div className="flex flex-col gap-5">
+            {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -117,7 +129,7 @@ export default function FeedScreen({ city, onCityChange, onEventClick, onSearchC
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="flex flex-col gap-5">
             {filtered.map(event => (
               <EventCard
                 key={event.id}

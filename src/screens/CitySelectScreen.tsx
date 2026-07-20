@@ -17,7 +17,7 @@ export default function CitySelectScreen({ onSelect }: Props) {
       <div className="relative z-10 flex flex-col items-center px-5 pt-16 pb-10 max-w-lg mx-auto w-full">
         {/* Logo */}
         <div className="mb-2 text-5xl font-black tracking-tight gradient-text">
-          Eventful
+          Eventilo
         </div>
         <p className="text-[var(--text-secondary)] text-sm mb-10">
           Die Premium Event App für Deutschland
