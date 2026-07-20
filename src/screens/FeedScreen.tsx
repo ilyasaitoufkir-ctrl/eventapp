@@ -129,7 +129,7 @@ export default function FeedScreen({ city, onCityChange, onEventClick, onSearchC
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-4 py-5 page-enter">
+      <div className="flex-1 pt-5 pb-4 page-enter">
         {loading ? (
           <div className="flex flex-col gap-5">
             {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}

@@ -27,7 +27,7 @@ export default function SavedScreen({ savedIds, onBack, onEventClick }: Props) {
         </div>
       </div>
 
-      <div className="px-4 py-4">
+      <div className="py-4">
         {saved.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="text-5xl mb-4">❤️</div>

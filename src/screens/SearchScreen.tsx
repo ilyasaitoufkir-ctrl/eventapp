@@ -59,9 +59,9 @@ export default function SearchScreen({ onBack, onEventClick }: Props) {
         </div>
       </div>
 
-      <div className="px-4 py-4">
+      <div className="py-4">
         {query.trim().length < 2 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex flex-col items-center justify-center py-20 text-center px-4">
             <div className="text-5xl mb-4">🔍</div>
             <div className="text-white font-bold text-lg mb-2">Events suchen</div>
             <div className="text-[var(--text-secondary)] text-sm max-w-xs">
@@ -69,7 +69,7 @@ export default function SearchScreen({ onBack, onEventClick }: Props) {
             </div>
           </div>
         ) : results.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="flex flex-col items-center justify-center py-20 text-center px-4">
             <div className="text-5xl mb-4">😕</div>
             <div className="text-white font-bold text-lg mb-2">Nichts gefunden</div>
             <div className="text-[var(--text-secondary)] text-sm">
@@ -78,10 +78,10 @@ export default function SearchScreen({ onBack, onEventClick }: Props) {
           </div>
         ) : (
           <>
-            <p className="text-[var(--text-secondary)] text-sm mb-4">
+            <p className="text-[var(--text-secondary)] text-sm mb-2 px-4">
               {results.length} {results.length === 1 ? 'Event' : 'Events'} gefunden
             </p>
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col">
               {results.map(event => (
                 <EventCard key={event.id} event={event} onClick={() => onEventClick(event)} />
               ))}

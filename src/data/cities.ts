@@ -11,7 +11,7 @@ export const cities: CityInfo[] = [
   {
     name: 'Hamburg',
     emoji: '🏙️',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=800&q=80',
     tagline: 'Die Perle des Nordens',
   },
   {
@@ -23,7 +23,7 @@ export const cities: CityInfo[] = [
   {
     name: 'Köln',
     emoji: '🎪',
-    image: 'https://images.unsplash.com/photo-1573145933-d2e71c6c7e7d?w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=800&q=80',
     tagline: 'Mer losse d\'r Dom in Kölle',
   },
   {

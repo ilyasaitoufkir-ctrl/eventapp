@@ -19,11 +19,10 @@ export default function EventCard({ event, onClick }: Props) {
 
   return (
     <div
-      className="event-card mx-0"
-      style={{ borderRadius: '24px' }}
+      className="event-card"
       onClick={onClick}
     >
-      <div className="relative h-52 overflow-hidden" style={{ borderRadius: '24px 24px 0 0' }}>
+      <div className="relative overflow-hidden" style={{ height: '200px', borderRadius: '24px 24px 0 0' }}>
         {imgError || !event.image ? (
           <div className="w-full h-full bg-[var(--bg-card-hover)] flex flex-col items-center justify-center gap-2">
             <ImageOff size={32} className="text-white/20" />
@@ -60,7 +59,7 @@ export default function EventCard({ event, onClick }: Props) {
       </div>
 
       <div className="px-4 pt-3.5 pb-4">
-        <h3 className="text-white font-extrabold text-lg leading-snug mb-2.5 line-clamp-2 tracking-tight">
+        <h3 className="text-white font-bold leading-snug mb-2.5 line-clamp-2" style={{ fontSize: '18px' }}>
           {event.name}
         </h3>
 
