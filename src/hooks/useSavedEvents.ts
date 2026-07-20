@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 
+type Id = number | string
+
 export function useSavedEvents() {
-  const [saved, setSaved] = useState<number[]>(() => {
+  const [saved, setSaved] = useState<Id[]>(() => {
     try {
       return JSON.parse(localStorage.getItem('eventilo_saved') ?? '[]')
     } catch {
@@ -13,10 +15,12 @@ export function useSavedEvents() {
     localStorage.setItem('eventilo_saved', JSON.stringify(saved))
   }, [saved])
 
-  const toggle = (id: number) =>
-    setSaved(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]))
+  const toggle = (id: Id) =>
+    setSaved(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
 
-  const isSaved = (id: number) => saved.includes(id)
+  const isSaved = (id: Id) => saved.includes(id)
 
   return { saved, toggle, isSaved }
 }

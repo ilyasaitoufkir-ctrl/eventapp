@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowLeft, Search, X } from 'lucide-react'
-import { events } from '../data/events'
 import type { Event } from '../types'
+import { getAllCachedEvents } from '../hooks/useEvents'
 import EventCard from '../components/EventCard'
 
 interface Props {
@@ -12,9 +12,11 @@ interface Props {
 export default function SearchScreen({ onBack, onEventClick }: Props) {
   const [query, setQuery] = useState('')
 
+  const allEvents = getAllCachedEvents()
+
   const results = query.trim().length < 2
     ? []
-    : events.filter(e => {
+    : allEvents.filter(e => {
         const q = query.toLowerCase()
         return (
           e.name.toLowerCase().includes(q) ||
@@ -40,7 +42,7 @@ export default function SearchScreen({ onBack, onEventClick }: Props) {
             <input
               autoFocus
               type="text"
-              placeholder="Event, Ort oder Kategorie suchen..."
+              placeholder="Event, Ort, Stadt oder Kategorie..."
               value={query}
               onChange={e => setQuery(e.target.value)}
               className="w-full bg-white/8 border border-white/10 rounded-xl pl-9 pr-9 py-2.5 text-white text-sm placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)]/50 transition-colors"
@@ -63,7 +65,7 @@ export default function SearchScreen({ onBack, onEventClick }: Props) {
             <div className="text-5xl mb-4">🔍</div>
             <div className="text-white font-bold text-lg mb-2">Events suchen</div>
             <div className="text-[var(--text-secondary)] text-sm max-w-xs">
-              Suche nach Event-Namen, Locations oder Kategorien
+              Suche in allen Städten – Eventim Live-Daten werden berücksichtigt
             </div>
           </div>
         ) : results.length === 0 ? (
@@ -79,7 +81,7 @@ export default function SearchScreen({ onBack, onEventClick }: Props) {
             <p className="text-[var(--text-secondary)] text-sm mb-4">
               {results.length} {results.length === 1 ? 'Event' : 'Events'} gefunden
             </p>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="flex flex-col gap-5">
               {results.map(event => (
                 <EventCard key={event.id} event={event} onClick={() => onEventClick(event)} />
               ))}

@@ -1,7 +1,7 @@
-import { useState, useMemo, useRef } from 'react'
-import { Search, ChevronDown, RefreshCw, MapPin } from 'lucide-react'
-import { events } from '../data/events'
+import { useMemo, useRef, useState } from 'react'
+import { Search, ChevronDown, RefreshCw, MapPin, Wifi, WifiOff } from 'lucide-react'
 import type { Category, City, Event } from '../types'
+import { useEvents } from '../hooks/useEvents'
 import EventCard from '../components/EventCard'
 import SkeletonCard from '../components/SkeletonCard'
 
@@ -16,8 +16,12 @@ const filters: { label: string; emoji: string; value: Category }[] = [
   { label: 'Kunst', emoji: '🎨', value: 'Kunst' },
 ]
 
-const TODAY = '2026-07-21'
-const WEEK_END = '2026-07-27'
+const TODAY = new Date().toISOString().split('T')[0]
+const WEEK_END = (() => {
+  const d = new Date()
+  d.setDate(d.getDate() + (7 - d.getDay() || 7))
+  return d.toISOString().split('T')[0]
+})()
 
 const cityEmoji: Record<City, string> = {
   Hamburg: '🏙️',
@@ -36,26 +40,21 @@ interface Props {
 
 export default function FeedScreen({ city, onCityChange, onEventClick, onSearchClick }: Props) {
   const [activeFilter, setActiveFilter] = useState<Category>('Diese Woche')
-  const [loading, setLoading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const { events, loading, apiSource, refresh } = useEvents(city)
 
   const filtered = useMemo(() => {
-    const base = events.filter(e => e.city === city)
-    if (activeFilter === 'Heute') return base.filter(e => e.date === TODAY)
-    if (activeFilter === 'Diese Woche') return base.filter(e => e.date >= TODAY && e.date <= WEEK_END)
+    if (activeFilter === 'Heute') return events.filter(e => e.date === TODAY)
+    if (activeFilter === 'Diese Woche') return events.filter(e => e.date >= TODAY && e.date <= WEEK_END)
     if (
       activeFilter === 'Konzert' || activeFilter === 'Party' || activeFilter === 'Sport' ||
-      activeFilter === 'Kultur' || activeFilter === 'Food & Drinks' || activeFilter === 'Kunst'
+      activeFilter === 'Kultur' || activeFilter === 'Food & Drinks' || activeFilter === 'Kunst' ||
+      activeFilter === 'Sonstiges'
     ) {
-      return base.filter(e => e.category === activeFilter)
+      return events.filter(e => e.category === activeFilter)
     }
-    return base
-  }, [city, activeFilter])
-
-  const handleRefresh = () => {
-    setLoading(true)
-    setTimeout(() => setLoading(false), 1200)
-  }
+    return events
+  }, [events, activeFilter])
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--bg)]">
@@ -65,7 +64,7 @@ export default function FeedScreen({ city, onCityChange, onEventClick, onSearchC
           {/* Logo */}
           <span className="text-xl font-black gradient-text tracking-tight">Eventilo</span>
 
-          {/* City selector – prominenter */}
+          {/* City selector */}
           <button
             onClick={onCityChange}
             className="flex items-center gap-2 rounded-2xl px-3.5 py-2 border border-[var(--primary)]/30 bg-[var(--primary)]/8 hover:bg-[var(--primary)]/15 transition-all"
@@ -81,8 +80,9 @@ export default function FeedScreen({ city, onCityChange, onEventClick, onSearchC
           {/* Actions */}
           <div className="flex items-center gap-2">
             <button
-              onClick={handleRefresh}
+              onClick={refresh}
               className="w-9 h-9 rounded-full bg-white/8 flex items-center justify-center hover:bg-white/12 transition-colors"
+              title="Neu laden"
             >
               <RefreshCw size={15} className={`text-white/70 ${loading ? 'animate-spin' : ''}`} />
             </button>
@@ -95,7 +95,21 @@ export default function FeedScreen({ city, onCityChange, onEventClick, onSearchC
           </div>
         </div>
 
-        {/* Filter bar – glassmorphism */}
+        {/* API source indicator */}
+        {!loading && (
+          <div className="flex items-center gap-1.5 px-4 pb-1.5">
+            {apiSource ? (
+              <Wifi size={10} className="text-green-400" />
+            ) : (
+              <WifiOff size={10} className="text-[var(--text-secondary)]" />
+            )}
+            <span className="text-[10px] text-[var(--text-secondary)]">
+              {apiSource ? 'Live via Eventim' : 'Lokale Events (Offline-Fallback)'}
+            </span>
+          </div>
+        )}
+
+        {/* Filter bar */}
         <div
           ref={scrollRef}
           className="flex gap-2 px-4 pb-3 overflow-x-auto"
@@ -114,7 +128,7 @@ export default function FeedScreen({ city, onCityChange, onEventClick, onSearchC
         </div>
       </div>
 
-      {/* Content – 16px padding seitlich */}
+      {/* Content */}
       <div className="flex-1 px-4 py-5 page-enter">
         {loading ? (
           <div className="flex flex-col gap-5">

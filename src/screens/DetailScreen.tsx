@@ -153,11 +153,21 @@ export default function DetailScreen({ event, saved, onBack, onSave }: Props) {
           </div>
         </div>
 
+        {/* Source badge */}
+        {event.source === 'Eventim' && (
+          <div className="flex items-center gap-2 bg-[var(--primary)]/8 border border-[var(--primary)]/20 rounded-xl px-3 py-2">
+            <span className="text-xs text-[var(--primary)] font-semibold">Live via Eventim</span>
+            <span className="text-[10px] text-[var(--text-secondary)]">· Preise & Verfügbarkeit können abweichen</span>
+          </div>
+        )}
+
         {/* Description */}
-        <div>
-          <h3 className="text-white font-bold text-base mb-2">Über das Event</h3>
-          <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{event.description}</p>
-        </div>
+        {event.description ? (
+          <div>
+            <h3 className="text-white font-bold text-base mb-2">Über das Event</h3>
+            <p className="text-[var(--text-secondary)] text-sm leading-relaxed">{event.description}</p>
+          </div>
+        ) : null}
 
         {/* Organizer */}
         {event.organizer && (

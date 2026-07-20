@@ -10,9 +10,10 @@ export type Category =
   | 'Kultur'
   | 'Food & Drinks'
   | 'Kunst'
+  | 'Sonstiges'
 
 export interface Event {
-  id: number
+  id: number | string
   name: string
   category: Exclude<Category, 'Alle' | 'Heute' | 'Diese Woche'>
   date: string
@@ -20,8 +21,8 @@ export interface Event {
   location: string
   city: City
   price: string
-  image: string
-  description: string
+  image?: string
+  description?: string
   ticketUrl: string
   instagram?: string
   website?: string
@@ -29,6 +30,7 @@ export interface Event {
   organizer?: string
   organizerLogo?: string
   available?: string
+  source?: string
 }
 
 export type Screen = 'city-select' | 'feed' | 'detail' | 'week' | 'search' | 'saved'

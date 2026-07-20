@@ -1,16 +1,16 @@
 import { ArrowLeft } from 'lucide-react'
-import { events } from '../data/events'
 import type { Event } from '../types'
+import { getAllCachedEvents } from '../hooks/useEvents'
 import EventCard from '../components/EventCard'
 
 interface Props {
-  savedIds: number[]
+  savedIds: (number | string)[]
   onBack: () => void
   onEventClick: (event: Event) => void
 }
 
 export default function SavedScreen({ savedIds, onBack, onEventClick }: Props) {
-  const saved = events.filter(e => savedIds.includes(e.id))
+  const saved = getAllCachedEvents().filter(e => savedIds.includes(e.id))
 
   return (
     <div className="min-h-screen bg-[var(--bg)] page-enter">
@@ -37,7 +37,7 @@ export default function SavedScreen({ savedIds, onBack, onEventClick }: Props) {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="flex flex-col gap-5">
             {saved.map(event => (
               <EventCard key={event.id} event={event} onClick={() => onEventClick(event)} />
             ))}
