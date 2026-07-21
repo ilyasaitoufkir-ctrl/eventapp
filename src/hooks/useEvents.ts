@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { City, Event } from '../types'
+
+type EventCategory = Event['category']
 import { events as hardcoded } from '../data/events'
 
 const cache = new Map<City, { data: Event[]; ts: number }>()
@@ -25,16 +27,15 @@ const getCategoryImage = (category: string): string => (({
   'Comedy':        'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=1200&q=90',
 } as Record<string, string>)[category] || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=90')
 
-const detectCategory = (text = ''): string => {
+const detectCategory = (text = ''): EventCategory => {
   const t = text.toLowerCase()
   if (t.includes('konzert') || t.includes('musik') || t.includes('rock') || t.includes('pop') || t.includes('jazz') || t.includes('festival')) return 'Konzert'
   if (t.includes('party') || t.includes('club') || t.includes('dj') || t.includes('nacht')) return 'Party'
   if (t.includes('sport') || t.includes('fußball') || t.includes('basketball')) return 'Sport'
   if (t.includes('kunst') || t.includes('ausstellung') || t.includes('museum')) return 'Kunst'
   if (t.includes('theater') || t.includes('oper') || t.includes('ballet') || t.includes('comedy')) return 'Kultur'
-  if (t.includes('musical') || t.includes('show')) return 'Musical'
-  if (t.includes('food') || t.includes('essen') || t.includes('markt')) return 'Food & Drinks'
-  return 'Freizeit'
+  if (t.includes('musical') || t.includes('show') || t.includes('food') || t.includes('essen') || t.includes('markt')) return 'Sonstiges'
+  return 'Sonstiges'
 }
 
 export function getAllCachedEvents(): Event[] {
@@ -64,36 +65,60 @@ export function useEvents(city: City) {
     setLoading(true)
 
     const loadEvents = async () => {
-      try {
-        const eventimUrl = `https://public-api.eventim.com/websearch/search/api/exploration/v1/products?webId=web__eventim-de&language=de&page=1&retail_partner=EVE&city_names=${encodeURIComponent(city)}&sort=DateAsc&top=100`
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(eventimUrl)}`
+      const eventimUrl = `https://public-api.eventim.com/websearch/search/api/exploration/v1/products?webId=web__eventim-de&language=de&page=1&retail_partner=EVE&city_names=${encodeURIComponent(city)}&sort=DateAsc&top=100`
 
-        const response = await fetch(proxyUrl, {
-          signal: AbortSignal.timeout(15_000),
-        })
+      const proxies = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(eventimUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(eventimUrl)}`,
+        `https://thingproxy.freeboard.io/fetch/${eventimUrl}`,
+      ]
 
-        console.log('API Response Status:', response.status)
-        const data = await response.json()
+      let data: { products?: unknown[] } | null = null
+
+      for (const proxyUrl of proxies) {
+        try {
+          console.log('Trying proxy:', proxyUrl.slice(0, 60))
+          const controller = new AbortController()
+          const timeout = setTimeout(() => controller.abort(), 8_000)
+
+          const response = await fetch(proxyUrl, { signal: controller.signal })
+          clearTimeout(timeout)
+
+          console.log('Response status:', response.status)
+          const json = await response.json()
+
+          if (json.products?.length > 0) {
+            data = json
+            console.log('Success! Products:', json.products.length)
+            break
+          }
+        } catch (e) {
+          console.log('Proxy failed:', (e as Error).message)
+        }
+      }
+
+      if (data?.products && data.products.length > 0) {
         const today = new Date().toISOString().split('T')[0]
 
-        const mapped = (data.products || [])
-          .map((p: Record<string, unknown>) => {
-            const le = (p.typeAttributes as Record<string, unknown>)?.liveEntertainment as Record<string, unknown> | undefined
+        const mapped = data.products
+          .map((p) => {
+            const prod = p as Record<string, unknown>
+            const le = (prod.typeAttributes as Record<string, unknown>)?.liveEntertainment as Record<string, unknown> | undefined
             const startDate = (le?.startDate as string) || ''
             const date = startDate ? startDate.split('T')[0] : ''
             const time = startDate ? (startDate.split('T')[1]?.slice(0, 5) || '20:00') : '20:00'
-            const category = detectCategory(p.name as string)
+            const category = detectCategory(prod.name as string)
 
             return {
-              id: `eventim-${p.productId}`,
-              name: p.name as string,
+              id: `eventim-${prod.productId}`,
+              name: prod.name as string,
               date,
               time,
               location: (le?.location as Record<string, string> | undefined)?.name || city,
               city,
-              price: p.price ? `ab ${p.price}€` : 'Kostenlos',
-              image: (p.imageUrl as string) || getCategoryImage(category),
-              ticketUrl: (p.link as string) || 'https://www.eventim.de',
+              price: prod.price ? `ab ${prod.price}€` : 'Kostenlos',
+              image: (prod.imageUrl as string) || getCategoryImage(category),
+              ticketUrl: (prod.link as string) || 'https://www.eventim.de',
               category,
               source: 'Eventim',
             }
@@ -101,23 +126,17 @@ export function useEvents(city: City) {
           .filter((e: Event) => e.date && e.date >= today)
           .sort((a: Event, b: Event) => a.date.localeCompare(b.date))
 
-        console.log('Events loaded:', mapped.length)
-
-        if (mapped.length > 0) {
-          cache.set(city, { data: mapped, ts: Date.now() })
-          setEvents(mapped)
-          setApiSource(true)
-        } else {
-          setEvents(fallback(city))
-          setApiSource(false)
-        }
-      } catch (error) {
-        console.error('API Error:', (error as Error).message)
+        console.log('Final events:', mapped.length)
+        cache.set(city, { data: mapped, ts: Date.now() })
+        setEvents(mapped)
+        setApiSource(true)
+      } else {
+        console.log('All proxies failed - using fallback')
         setEvents(fallback(city))
         setApiSource(false)
-      } finally {
-        setLoading(false)
       }
+
+      setLoading(false)
     }
 
     loadEvents()
