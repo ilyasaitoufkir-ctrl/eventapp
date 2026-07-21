@@ -15,15 +15,15 @@ function fallback(city: City): Event[] {
 }
 
 const getCategoryImage = (category: string): string => (({
-  'Konzert':       'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=800&q=80',
-  'Party':         'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80',
-  'Sport':         'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=800&q=80',
-  'Kunst':         'https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=800&q=80',
-  'Kultur':        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80',
-  'Food & Drinks': 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80',
-  'Musical':       'https://images.unsplash.com/photo-1503095396549-807759245b35?w=800&q=80',
-  'Comedy':        'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=800&q=80',
-} as Record<string, string>)[category] || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80')
+  'Konzert':       'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=1200&q=90',
+  'Party':         'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1200&q=90',
+  'Sport':         'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&q=90',
+  'Kunst':         'https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=1200&q=90',
+  'Kultur':        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&q=90',
+  'Food & Drinks': 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=90',
+  'Musical':       'https://images.unsplash.com/photo-1503095396549-807759245b35?w=1200&q=90',
+  'Comedy':        'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=1200&q=90',
+} as Record<string, string>)[category] || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=90')
 
 const detectCategory = (text = ''): string => {
   const t = text.toLowerCase()
@@ -66,7 +66,7 @@ export function useEvents(city: City) {
 
     const loadEvents = async () => {
       try {
-        const url = `https://public-api.eventim.com/websearch/search/api/exploration/v1/products?webId=web__eventim-de&language=de&page=1&retail_partner=EVE&city_names=${encodeURIComponent(city)}&sort=DateAsc&top=50`
+        const url = `https://public-api.eventim.com/websearch/search/api/exploration/v1/products?webId=web__eventim-de&language=de&page=1&retail_partner=EVE&city_names=${encodeURIComponent(city)}&sort=DateAsc&top=100`
 
         const response = await fetch(url, {
           headers: {
