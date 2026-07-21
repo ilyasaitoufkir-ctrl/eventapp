@@ -19,13 +19,34 @@ exports.handler = async (event) => {
 
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
         'Referer': 'https://www.eventim.de/',
+        'Origin': 'https://www.eventim.de',
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
       },
     })
 
-    const data = await response.json()
+    const text = await response.text()
+    console.log('Response status:', response.status)
+    console.log('Response preview:', text.slice(0, 200))
+
+    if (text.startsWith('<')) {
+      return {
+        statusCode: 500,
+        headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ error: 'Eventim returned HTML - blocked' }),
+      }
+    }
+
+    const data = JSON.parse(text)
     const today = new Date().toISOString().split('T')[0]
 
     const events = (data.products || [])
@@ -45,7 +66,7 @@ exports.handler = async (event) => {
       .filter(e => e.date && e.date >= today)
       .sort((a, b) => a.date.localeCompare(b.date))
 
-    console.log(`Eventim: ${events.length} events for ${city}`)
+    console.log(`Returning ${events.length} events for ${city}`)
 
     return {
       statusCode: 200,
