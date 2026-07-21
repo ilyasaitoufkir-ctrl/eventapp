@@ -42,19 +42,25 @@ export function useEvents(city: City) {
 
     setLoading(true)
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8_000)
+    const timeout = setTimeout(() => controller.abort(), 15_000)
 
     fetch(`/api/events?city=${encodeURIComponent(city)}`, { signal: controller.signal })
-      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
+      .then(r => {
+        console.log('API Response Status:', r.status)
+        if (!r.ok) throw new Error(String(r.status))
+        return r.json()
+      })
       .then((data: Event[]) => {
+        console.log('API Data length:', data?.length)
+        console.log('First event:', data?.[0])
         if (!Array.isArray(data) || data.length === 0) throw new Error('empty response')
         cache.set(city, { data, ts: Date.now() })
         setEvents(data)
         setApiSource(true)
       })
       .catch(err => {
+        console.error('API Error:', err.message)
         if (err.name === 'AbortError') return
-        console.warn(`Eventim API failed (${city}), using fallback:`, err.message)
         setEvents(fallback(city))
         setApiSource(false)
       })
