@@ -33,6 +33,7 @@ const detectCategory = (text = ''): EventCategory => {
   if (t.includes('sport') || t.includes('fußball') || t.includes('basketball')) return 'Sport'
   if (t.includes('kunst') || t.includes('ausstellung') || t.includes('museum')) return 'Kunst'
   if (t.includes('theater') || t.includes('oper') || t.includes('ballet') || t.includes('comedy')) return 'Kultur'
+  if (t.includes('food') || t.includes('essen') || t.includes('markt') || t.includes('wein')) return 'Food & Drinks'
   return 'Sonstiges'
 }
 
@@ -61,44 +62,60 @@ export function useEvents(city: City) {
     }
 
     setLoading(true)
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15_000)
 
-    fetch(`/api/events?city=${encodeURIComponent(city)}`, { signal: controller.signal })
-      .then(r => {
-        console.log('API Response Status:', r.status)
-        if (!r.ok) throw new Error(`HTTP ${r.status}`)
-        return r.json()
-      })
-      .then((data: (Event & { image?: string })[]) => {
-        console.log('Events received:', data?.length, '| First:', data?.[0]?.name)
-        if (!Array.isArray(data) || data.length === 0) throw new Error('empty response')
+    const loadEvents = async () => {
+      try {
+        const url = `https://public-api.eventim.com/websearch/search/api/exploration/v1/products?webId=web__eventim-de&language=de&page=1&retail_partner=EVE&city_names=${encodeURIComponent(city)}&sort=DateAsc&top=100`
 
-        const mapped = data.map(e => ({
-          ...e,
-          image: e.image || getCategoryImage(detectCategory(e.name)),
-          category: detectCategory(e.name),
-        }))
+        const response = await fetch(url, {
+          signal: AbortSignal.timeout(15_000),
+        })
 
-        cache.set(city, { data: mapped, ts: Date.now() })
-        setEvents(mapped)
-        setApiSource(true)
-      })
-      .catch(err => {
-        console.error('API Error:', err.message)
-        if (err.name === 'AbortError') return
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+
+        const data = await response.json()
+        const today = new Date().toISOString().split('T')[0]
+
+        const mapped: Event[] = (data.products || [])
+          .map((p: Record<string, unknown>) => {
+            const le = (p.typeAttributes as Record<string, unknown>)?.liveEntertainment as Record<string, unknown> | undefined
+            const startDate = (le?.startDate as string) || ''
+            const category = detectCategory(p.name as string)
+            return {
+              id: `eventim-${p.productId}`,
+              name: p.name as string,
+              date: startDate ? startDate.split('T')[0] : '',
+              time: startDate ? (startDate.split('T')[1]?.slice(0, 5) || '20:00') : '20:00',
+              location: (le?.location as Record<string, string> | undefined)?.name || city,
+              city,
+              price: p.price ? `ab ${p.price}€` : 'Kostenlos',
+              image: (p.imageUrl as string) || getCategoryImage(category),
+              ticketUrl: (p.link as string) || 'https://www.eventim.de',
+              category,
+              source: 'Eventim',
+            }
+          })
+          .filter((e: Event) => e.date && e.date >= today)
+          .sort((a: Event, b: Event) => a.date.localeCompare(b.date))
+
+        if (mapped.length > 0) {
+          cache.set(city, { data: mapped, ts: Date.now() })
+          setEvents(mapped)
+          setApiSource(true)
+          console.log('Events loaded:', mapped.length)
+        } else {
+          throw new Error('No events')
+        }
+      } catch (error) {
+        console.error('API Error:', (error as Error).message)
         setEvents(fallback(city))
         setApiSource(false)
-      })
-      .finally(() => {
-        clearTimeout(timeout)
+      } finally {
         setLoading(false)
-      })
-
-    return () => {
-      clearTimeout(timeout)
-      controller.abort()
+      }
     }
+
+    loadEvents()
   }, [city, refreshKey])
 
   const refresh = () => {
