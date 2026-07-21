@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import type { City, Event } from '../types'
+import { events as hardcoded } from '../data/events'
 
 type EventCategory = Event['category']
-import { events as hardcoded } from '../data/events'
 
 const cache = new Map<City, { data: Event[]; ts: number }>()
 const TTL = 3_600_000
@@ -23,8 +23,7 @@ const getCategoryImage = (category: string): string => (({
   'Kunst':         'https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=1200&q=90',
   'Kultur':        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&q=90',
   'Food & Drinks': 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1200&q=90',
-  'Musical':       'https://images.unsplash.com/photo-1503095396549-807759245b35?w=1200&q=90',
-  'Comedy':        'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=1200&q=90',
+  'Sonstiges':     'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=90',
 } as Record<string, string>)[category] || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=90')
 
 const detectCategory = (text = ''): EventCategory => {
@@ -34,7 +33,6 @@ const detectCategory = (text = ''): EventCategory => {
   if (t.includes('sport') || t.includes('fußball') || t.includes('basketball')) return 'Sport'
   if (t.includes('kunst') || t.includes('ausstellung') || t.includes('museum')) return 'Kunst'
   if (t.includes('theater') || t.includes('oper') || t.includes('ballet') || t.includes('comedy')) return 'Kultur'
-  if (t.includes('musical') || t.includes('show') || t.includes('food') || t.includes('essen') || t.includes('markt')) return 'Sonstiges'
   return 'Sonstiges'
 }
 
@@ -63,83 +61,44 @@ export function useEvents(city: City) {
     }
 
     setLoading(true)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 15_000)
 
-    const loadEvents = async () => {
-      const eventimUrl = `https://public-api.eventim.com/websearch/search/api/exploration/v1/products?webId=web__eventim-de&language=de&page=1&retail_partner=EVE&city_names=${encodeURIComponent(city)}&sort=DateAsc&top=100`
+    fetch(`/api/events?city=${encodeURIComponent(city)}`, { signal: controller.signal })
+      .then(r => {
+        console.log('API Response Status:', r.status)
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then((data: (Event & { image?: string })[]) => {
+        console.log('Events received:', data?.length, '| First:', data?.[0]?.name)
+        if (!Array.isArray(data) || data.length === 0) throw new Error('empty response')
 
-      const proxies = [
-        `https://api.allorigins.win/raw?url=${encodeURIComponent(eventimUrl)}`,
-        `https://corsproxy.io/?${encodeURIComponent(eventimUrl)}`,
-        `https://thingproxy.freeboard.io/fetch/${eventimUrl}`,
-      ]
+        const mapped = data.map(e => ({
+          ...e,
+          image: e.image || getCategoryImage(detectCategory(e.name)),
+          category: detectCategory(e.name),
+        }))
 
-      let data: { products?: unknown[] } | null = null
-
-      for (const proxyUrl of proxies) {
-        try {
-          console.log('Trying proxy:', proxyUrl.slice(0, 60))
-          const controller = new AbortController()
-          const timeout = setTimeout(() => controller.abort(), 8_000)
-
-          const response = await fetch(proxyUrl, { signal: controller.signal })
-          clearTimeout(timeout)
-
-          console.log('Response status:', response.status)
-          const json = await response.json()
-
-          if (json.products?.length > 0) {
-            data = json
-            console.log('Success! Products:', json.products.length)
-            break
-          }
-        } catch (e) {
-          console.log('Proxy failed:', (e as Error).message)
-        }
-      }
-
-      if (data?.products && data.products.length > 0) {
-        const today = new Date().toISOString().split('T')[0]
-
-        const mapped = data.products
-          .map((p) => {
-            const prod = p as Record<string, unknown>
-            const le = (prod.typeAttributes as Record<string, unknown>)?.liveEntertainment as Record<string, unknown> | undefined
-            const startDate = (le?.startDate as string) || ''
-            const date = startDate ? startDate.split('T')[0] : ''
-            const time = startDate ? (startDate.split('T')[1]?.slice(0, 5) || '20:00') : '20:00'
-            const category = detectCategory(prod.name as string)
-
-            return {
-              id: `eventim-${prod.productId}`,
-              name: prod.name as string,
-              date,
-              time,
-              location: (le?.location as Record<string, string> | undefined)?.name || city,
-              city,
-              price: prod.price ? `ab ${prod.price}€` : 'Kostenlos',
-              image: (prod.imageUrl as string) || getCategoryImage(category),
-              ticketUrl: (prod.link as string) || 'https://www.eventim.de',
-              category,
-              source: 'Eventim',
-            }
-          })
-          .filter((e: Event) => e.date && e.date >= today)
-          .sort((a: Event, b: Event) => a.date.localeCompare(b.date))
-
-        console.log('Final events:', mapped.length)
         cache.set(city, { data: mapped, ts: Date.now() })
         setEvents(mapped)
         setApiSource(true)
-      } else {
-        console.log('All proxies failed - using fallback')
+      })
+      .catch(err => {
+        console.error('API Error:', err.message)
+        if (err.name === 'AbortError') return
         setEvents(fallback(city))
         setApiSource(false)
-      }
+      })
+      .finally(() => {
+        clearTimeout(timeout)
+        setLoading(false)
+      })
 
-      setLoading(false)
+    return () => {
+      clearTimeout(timeout)
+      controller.abort()
     }
-
-    loadEvents()
   }, [city, refreshKey])
 
   const refresh = () => {
