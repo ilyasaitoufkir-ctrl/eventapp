@@ -3,8 +3,8 @@
   publish = "dist"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/events"
+  to = "/.netlify/functions/events"
   status = 200
 
 [[redirects]]
